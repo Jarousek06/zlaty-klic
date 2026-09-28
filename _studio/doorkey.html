@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Studio — door key test</title>
+<style>html,body{margin:0;background:#050505;color:#c9a24a;font:12px monospace}canvas{display:block;width:100vw;height:70vh}#log{padding:8px;white-space:pre}</style>
+<script type="importmap">{ "imports": { "three": "../assets/vendor/three.module.min.js" } }</script>
+<canvas id="c"></canvas>
+<div id="log"></div>
+<script type="module">
+  import * as THREE from "three";
+  import { studioEnvironment } from "../assets/js/models.js";
+  import { loadDoorKey } from "../assets/js/doorkey.js";
+  const log = (s) => (document.getElementById("log").textContent += s + "\n");
+  const canvas = document.getElementById("c");
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true });
+  r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace;
+  r.setPixelRatio(1.5); r.setSize(canvas.clientWidth, canvas.clientHeight, false);
+  const s = new THREE.Scene(); s.environment = studioEnvironment(r);
+  const cam = new THREE.PerspectiveCamera(26, canvas.clientWidth / canvas.clientHeight, 0.1, 100); cam.position.set(0, 0, 14);
+  const L = new THREE.DirectionalLight(0xfff0d8, 1.6); L.position.set(4, 6, 8); s.add(L);
+  try {
+    const key = await loadDoorKey();
+    log("raw size " + JSON.stringify(key.userData.rawSize) + " axes " + key.userData.axes.join(","));
+    const b = new THREE.Box3().setFromObject(key); const sz = b.getSize(new THREE.Vector3());
+    log("normalized size " + sz.toArray().map((n) => n.toFixed(2)).join(" x "));
+    s.add(key);
+    r.render(s, cam);
+    log("OK");
+  } catch (e) { log("CHYBA " + e.message + "\n" + e.stack); }
+</script>

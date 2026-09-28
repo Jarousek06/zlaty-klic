@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Studio — porovnání modelů</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #050505; color: #c9a24a; font: 12px/1.4 monospace; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+  canvas { width: 100%; height: 100%; display: block; }
+  .cell { position: relative; }
+  .cell span { position: absolute; left: 12px; top: 10px; }
+</style>
+<script type="importmap">{ "imports": { "three": "../assets/vendor/three.module.min.js" } }</script>
+<div class="row">
+  <div class="cell"><canvas id="a"></canvas><span>golden-key.obj (uživatel)</span></div>
+  <div class="cell"><canvas id="b"></canvas><span>procedurální klíč</span></div>
+</div>
+<script type="module">
+  import * as THREE from "three";
+  import { OBJLoader } from "../assets/vendor/OBJLoader.js";
+  import { studioEnvironment, goldMaterial, buildOrnateKey } from "../assets/js/models.js";
+
+  function stage(canvas, obj) {
+    const r = new THREE.WebGLRenderer({ canvas, antialias: true });
+    r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.1;
+    r.outputColorSpace = THREE.SRGBColorSpace;
+    r.setPixelRatio(1.5); r.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    const s = new THREE.Scene(); s.environment = studioEnvironment(r);
+    const cam = new THREE.PerspectiveCamera(26, canvas.clientWidth / canvas.clientHeight, 0.1, 100); cam.position.z = 14;
+    const L = new THREE.DirectionalLight(0xfff0d8, 1.6); L.position.set(4, 6, 8); s.add(L);
+    const P = new THREE.PointLight(0xffd08a, 20, 0, 1.6); P.position.set(2, 2, 4.5); s.add(P);
+    const holder = new THREE.Group(); holder.add(obj); holder.rotation.set(-0.38, 0.32, Math.PI + 0.5); s.add(holder);
+    holder.scale.setScalar(0.72);
+    const loop = (t) => { holder.rotation.y = 0.32 + Math.sin(t / 1400) * 0.5; r.render(s, cam); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+
+  new OBJLoader().load("../assets/models/golden-key.obj", (o) => {
+    const mat = goldMaterial();
+    const box = new THREE.Box3().setFromObject(o);
+    const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+    o.traverse((m) => { if (m.isMesh) { m.material = mat; m.geometry.computeVertexNormals(); } });
+    o.position.sub(c);
+    const g = new THREE.Group(); g.add(o); g.scale.setScalar(5.2 / size.x); g.rotation.x = -0.9;
+    stage(document.getElementById("a"), g);
+  });
+  stage(document.getElementById("b"), buildOrnateKey(goldMaterial()));
+</script>
